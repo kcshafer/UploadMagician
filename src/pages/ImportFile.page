@@ -1,0 +1,28 @@
+<apex:page sidebar="false" controller="ImportFile">
+<!-- to do: add javascript alerts to confirm the mapping and the dml actions -->
+
+   <apex:form >
+      <apex:pageBlock >
+        <apex:inputFile value="{!contentFile}" filename="{!nameFile}" /> 
+        <apex:commandButton action="{!mapFields}" value="Map Fields" id="theButton" style="width:70px;"/>
+        <apex:selectList value="{!select_object}" size="1">
+            <apex:selectOptions value="{!objects}"></apex:selectOptions>
+        </apex:selectList>
+        temp is {!temp}
+        <apex:pageBlockTable value="{!col_headers}" var="ch">
+            <apex:column value="{!ch}"/>
+            <apex:column ><apex:selectList value="{!field_mapping[ch]}" size="1"><apex:selectOptions value="{!fields}"></apex:selectOptions></apex:selectList></apex:column>
+        </apex:pageBlockTable>
+
+        <apex:pageBlockTable value="{!mappings}" var="m">
+            <apex:column value="{!m.obj}"/>
+            <apex:column value="{!m.col_index}"/>
+            <apex:column value="{!m.field_name}"/>
+        </apex:pageBlockTable>
+        <apex:commandButton action="{!saveMapping}"/>
+      </apex:pageBlock>
+
+      <apex:commandButton action="{!doInsert}" value="Insert"/>
+      <apex:commandButton action="{!doUpdate}" value="Update"/>       
+   </apex:form>   
+</apex:page>
