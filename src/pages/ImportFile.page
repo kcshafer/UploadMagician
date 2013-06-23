@@ -2,6 +2,7 @@
 <!-- to do: add javascript alerts to confirm the mapping and the dml actions -->
 
    <apex:form >
+    <apex:messages />
       <apex:pageBlock >
         <apex:inputFile value="{!contentFile}" filename="{!nameFile}" /> 
         <apex:commandButton action="{!mapFields}" value="Map Fields" id="theButton" style="width:70px;"/>
@@ -19,10 +20,10 @@
             <apex:column value="{!m.col_index}"/>
             <apex:column value="{!m.field_name}"/>
         </apex:pageBlockTable>
-        <apex:commandButton action="{!saveMapping}"/>
+        <apex:commandButton action="{!saveMapping}" value="Generate Mapping" rendered="{!renderGenerateMapping}"/>
       </apex:pageBlock>
 
-      <apex:commandButton action="{!doInsert}" value="Insert"/>
-      <apex:commandButton action="{!doUpdate}" value="Update"/>       
+      <apex:commandButton action="{!doInsert}" value="Insert" rendered="{!renderDMLButtons}"/>
+      <apex:commandButton action="{!doUpdate}" value="Update" rendered="{!renderDMLButtons}"/>       
    </apex:form>   
 </apex:page>
