@@ -1,6 +1,7 @@
 public class ImportFile {
     
     //mystuff 
+    public Map<String, FieldMapping> temp_map {get;set;}
     public Map<String,String> field_mapping {get;set;}
     public List<FieldMapping> mappings {get;set;}
     public List<String> col_headers {get;set;}
@@ -26,19 +27,28 @@ public class ImportFile {
     //class only stuff
     public Map<String,Integer> field_indexes {get;set;}
     public Map<String,Schema.sObjectType> object_map;
+    public UploadMagician__c main_settings; //root settings file 
+    public Set<String> excludefields_main = new Set<String>(); 
+    public Set<String> excludeobjs_main = new Set<String>(); 
 
     //constructor
     public ImportFile(){
+        main_settings = UploadMagician__c.getInstance('main'); 
+        List<String> excfields_temp = main_settings.Exclude_Fields__c.split(','); 
+        List<String> excobjs_temp = main_settings.Exclude_Objects__c.split(','); 
+        excludeobjs_main.addAll(excobjs_temp);
+        excludefields_main.addAll(excfields_temp);
         object_map = new Map<String,Schema.sObjectType>(); 
         List<Schema.SObjectType> gd = Schema.getGlobalDescribe().Values();    
         objects = new List<SelectOption>();
             for(Schema.SObjectType f : gd){
-                if(f.getDescribe().isAccessible() && (f.getDescribe().isCreateable() || f.getDescribe().isUpdateable())){
+                if((!excludeobjs_main.contains(f.getDescribe().getName())) && f.getDescribe().isAccessible() && (f.getDescribe().isCreateable() || f.getDescribe().isUpdateable())){
                     object_map.put(f.getDescribe().getName(),f);
                     objects.add(new SelectOption(f.getDescribe().getName(),f.getDescribe().getLabel()));
                 }
             }
         objects.sort(); 
+
     }
 
     public PageReference mapFields(){
@@ -66,9 +76,14 @@ public class ImportFile {
             system.debug('kc is ' + field_mapping); 
             for(String s : field_map.keySet()){
                 Schema.SObjectField sobj_field = field_map.get(s);
-                if(sobj_field.getDescribe().isCreateable() || sobj_field.getDescribe().isUpdateable()){
+                if((!excludefields_main.contains(s)) && (sobj_field.getDescribe().isCreateable() || sobj_field.getDescribe().isUpdateable())){
                     fields.add(new SelectOption(s,s)); 
                 }
+            }
+            mappings = new List<FieldMapping>(); 
+            temp_map = new Map<String,FieldMapping>();
+            for(String s : field_mapping.keySet()){
+                temp_map.put(s,new FieldMapping(select_object,field_mapping.get(s),field_indexes.get(s),s,fields));
             }
         }
         else{
@@ -80,26 +95,32 @@ public class ImportFile {
     }       
 
     public PageReference saveMapping(){
-        mappings = new List<FieldMapping>(); 
+        /*mappings = new List<FieldMapping>(); 
         for(String s : field_mapping.keySet()){
             mappings.add(new FieldMapping(select_object,field_mapping.get(s),field_indexes.get(s)));
-        }
+        }*/
         mappings.sort(); 
 
         return null;
     }
 
     public PageReference doInsert(){
-        List<SObject> insertObjects = this.getDMLObjects();
-        system.debug('objects are ' + insertObjects);
-        List<Database.SaveResult> errors = Database.Insert(insertObjects);
+        try{
+            List<SObject> insertObjects = this.getDMLObjects();
+            system.debug('objects are ' + insertObjects);
+            List<Database.SaveResult> errors = Database.Insert(insertObjects,false);
 
-        if(!errors.isEmpty()){
-            has_errors = true;
-            upload_errors = new List<ImportError>(); 
-            for(Database.SaveResult sr : errors){
-                upload_errors.add(new ImportError(sr));
+            if(!errors.isEmpty()){
+                has_errors = true;
+                upload_errors = new List<ImportError>(); 
+                for(Database.SaveResult sr : errors){
+                    upload_errors.add(new ImportError(sr));
+                }
             }
+        }
+        catch(Exception e){
+            ApexPages.Message error = new ApexPages.Message(ApexPages.severity.WARNING,'Bad field value');
+            ApexPages.addMessage(error); 
         }
 
         return null; 
@@ -124,6 +145,7 @@ public class ImportFile {
             for(String cell : csv_rows[x].split(',')){
                 system.debug('cell is ' + cell);
                 so.put(mappings[y].field_name,cell); 
+                y++; 
             }
             dmlObjects.add(so);
         }
@@ -134,17 +156,55 @@ public class ImportFile {
         public String obj {get;set;} 
         public Integer col_index {get;set;}
         public String field_name {get;set;}
+        public String col_header {get;set;}
+        public String default_val {get;set;}
+        public List<SelectOption> options {get;set;}
+        public List<Levenshtein> levs; 
 
-        public FieldMapping(String obj,String field_name,Integer idx){
+        public FieldMapping(String obj,String field_name,Integer idx,String col_head, List<SelectOption> options){
             this.obj = obj; 
             this.field_name = field_name; 
-            this.col_index = idx; 
+            this.col_index = idx;
+            this.options = options; 
+            this.col_header = col_head;
+            this.matchField(); 
         }
 
+        //uses the levenshtein distance theory to calculate a matching score between a csv header and fields in salesforce
+        private void matchField(){
+            Map<String,Integer> matching_scores = new Map<String,Integer>(); 
+            levs = new List<Levenshtein>(); 
+            for(SelectOption so : this.options){
+                levs.add(new Levenshtein(so.getValue(),this.col_header));
+            }
+            system.debug('list levs are ' + levs);
+            levs.sort(); 
+            default_val = levs[0].field_name; 
+            this.field_name = levs[0].field_name;
+        }
         public Integer compareTo(Object comp){
             FieldMapping compMapping = (FieldMapping)comp; 
             if (this.col_index == compMapping.col_index) return 0; 
             if (this.col_index > compMapping.col_index) return 1; 
+            return -1; 
+        }
+    }
+
+    public class Levenshtein implements Comparable{
+        public Integer score; 
+        public String field_name; 
+        public String col_header; 
+
+        public Levenshtein(String field_name,String col_head){
+            this.field_name = field_name; 
+            this.col_header = col_head; 
+            this.score = this.field_name.getLevenshteinDistance(this.col_header); 
+        }
+
+        public Integer compareTo(Object comp){
+            Levenshtein lev = (Levenshtein)comp;
+            if(this.score == lev.score) return 0; 
+            if(this.score > lev.score) return 1;
             return -1; 
         }
     }
