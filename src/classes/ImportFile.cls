@@ -95,10 +95,10 @@ public class ImportFile {
     }       
 
     public PageReference saveMapping(){
-        /*mappings = new List<FieldMapping>(); 
+        mappings = new List<FieldMapping>(); 
         for(String s : field_mapping.keySet()){
-            mappings.add(new FieldMapping(select_object,field_mapping.get(s),field_indexes.get(s)));
-        }*/
+            mappings.add(temp_map.get(s));
+        }
         mappings.sort(); 
 
         return null;
