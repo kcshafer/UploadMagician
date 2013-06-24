@@ -6,6 +6,7 @@ public class ImportFile {
     public List<String> col_headers {get;set;}
     public List<SelectOption> objects {get;set;}
     public List<SelectOption> fields {get;set;}
+    public List<ImportError> upload_errors {get;set;}
     public Set<String> selected_fields {get;set;}
     public String csv_file {get;set;}
     public String select_object {get;set;}
@@ -20,6 +21,7 @@ public class ImportFile {
     public Boolean renderGenerateMapping {get;set;}
     public Boolean isCreateable {get;set;}
     public Boolean isUpdateable {get;set;}
+    public Boolean has_errors {get;set;}
 
     //class only stuff
     public Map<String,Integer> field_indexes {get;set;}
@@ -38,6 +40,7 @@ public class ImportFile {
             }
         objects.sort(); 
     }
+
     public PageReference mapFields(){
         if(contentFile != null){
             Schema.sObjectType sobj = object_map.get(select_object);
@@ -45,7 +48,7 @@ public class ImportFile {
             isCreateable = sobj_desc.isCreateable(); 
             isUpdateable = sobj_desc.isUpdateable(); 
             Map <String, Schema.SObjectType> schemaMap = Schema.getGlobalDescribe();
-            Map<String,Schema.SObjectField> field_map = schemaMap.get('importtest__c').getDescribe().fields.getMap();
+            Map<String,Schema.SObjectField> field_map = schemaMap.get(select_object).getDescribe().fields.getMap();
             col_headers = new List<String>(); 
             temp2 = contentFile.toString(); 
             temp2 = temp2.split('\n')[0];
@@ -72,14 +75,14 @@ public class ImportFile {
             ApexPages.Message error = new ApexPages.Message(ApexPages.severity.WARNING,'File Is Empty');
             ApexPages.addMessage(error); 
         }
-
+        renderGenerateMapping = true; 
         return null;
     }       
 
     public PageReference saveMapping(){
         mappings = new List<FieldMapping>(); 
         for(String s : field_mapping.keySet()){
-            mappings.add(new FieldMapping('importtest__c',field_mapping.get(s),field_indexes.get(s)));
+            mappings.add(new FieldMapping(select_object,field_mapping.get(s),field_indexes.get(s)));
         }
         mappings.sort(); 
 
@@ -90,6 +93,14 @@ public class ImportFile {
         List<SObject> insertObjects = this.getDMLObjects();
         system.debug('objects are ' + insertObjects);
         List<Database.SaveResult> errors = Database.Insert(insertObjects);
+
+        if(!errors.isEmpty()){
+            has_errors = true;
+            upload_errors = new List<ImportError>(); 
+            for(Database.SaveResult sr : errors){
+                upload_errors.add(new ImportError(sr));
+            }
+        }
 
         return null; 
     }
@@ -107,7 +118,7 @@ public class ImportFile {
         List<String> csv_rows = contentFile.toString().split('\n'); 
         system.debug('rows are ' + csv_rows.size()); 
         for(Integer x = 1; x < csv_rows.size(); x++){
-            SObject so = Schema.getGlobalDescribe().get('importtest__c').newSObject();
+            SObject so = Schema.getGlobalDescribe().get(select_object).newSObject();
             Integer y = 0; 
             system.debug('kc is ' + csv_rows[x].split(','));
             for(String cell : csv_rows[x].split(',')){
@@ -135,6 +146,22 @@ public class ImportFile {
             if (this.col_index == compMapping.col_index) return 0; 
             if (this.col_index > compMapping.col_index) return 1; 
             return -1; 
+        }
+    }
+
+    public class ImportError{
+        public Id id {get;set;}
+        public List<String> error_messages {get;set;}
+        public Boolean status {get;set;}
+
+        public ImportError(Database.SaveResult sr){
+            this.id = sr.getId(); 
+            this.status = sr.isSuccess(); 
+            this.error_messages = new List<String>(); 
+            for(Database.Error err : sr.getErrors()){
+                //TODO: use the getFields() method to use with highlighting issues fields, provide more info etc. 
+                this.error_messages.add(err.getMessage());
+            }
         }
     }      
 }

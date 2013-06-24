@@ -21,6 +21,16 @@
             <apex:column value="{!m.field_name}"/>
         </apex:pageBlockTable>
         <apex:commandButton action="{!saveMapping}" value="Generate Mapping" rendered="{!renderGenerateMapping}"/>
+
+        <apex:pageBlockTable value="{!upload_errors}" var="err" rendered="{!has_errors}">
+            <apex:column value="{!err.Id}"/>
+            <apex:column value="{!err.status}"/>
+            <apex:column>
+                <apex:repeat value="{!err.error_messages}" var="m">
+                    <li>{!m}</li>
+                </apex:repeat>
+            </apex:column>
+        </apex:pageBlockTable>
       </apex:pageBlock>
 
       <apex:commandButton action="{!doInsert}" value="Insert" rendered="{!isCreateable}"/>
