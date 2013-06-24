@@ -16,19 +16,23 @@ public class ImportFile {
 
 
     //boolean render properties 
-    public Boolean renderDMLButtons {get;set;}
+    public Boolean renderDMLButtons {get;set;} //might not need this 
     public Boolean renderGenerateMapping {get;set;}
+    public Boolean isCreateable {get;set;}
+    public Boolean isUpdateable {get;set;}
 
     //class only stuff
     public Map<String,Integer> field_indexes {get;set;}
-
+    public Map<String,Schema.sObjectType> object_map;
 
     //constructor
     public ImportFile(){
+        object_map = new Map<String,Schema.sObjectType>(); 
         List<Schema.SObjectType> gd = Schema.getGlobalDescribe().Values();    
         objects = new List<SelectOption>();
             for(Schema.SObjectType f : gd){
-                if(f.isCreateable() || f.isUpdateable()){
+                if(f.getDescribe().isAccessible() && (f.getDescribe().isCreateable() || f.getDescribe().isUpdateable())){
+                    object_map.put(f.getDescribe().getName(),f);
                     objects.add(new SelectOption(f.getDescribe().getName(),f.getDescribe().getLabel()));
                 }
             }
@@ -36,26 +40,33 @@ public class ImportFile {
     }
     public PageReference mapFields(){
         if(contentFile != null){
-        Map <String, Schema.SObjectType> schemaMap = Schema.getGlobalDescribe();
-        Map<String,Schema.SObjectField> field_map = schemaMap.get('importtest__c').getDescribe().fields.getMap();
-        col_headers = new List<String>(); 
-        temp2 = contentFile.toString(); 
-        temp2 = temp2.split('\n')[0];
-         temp = (contentFile.toString().split('\n'))[0]; 
-        col_headers = temp.split(',');  
-        field_mapping = new Map<String,String>();
-        fields = new List<SelectOption>(); 
-        field_indexes = new Map<String,Integer>(); 
-        Integer x = 0; 
-        for(String s : col_headers){
-            field_mapping.put(s,'');
-            field_indexes.put(s,x);
-            x++; 
-        }
-        system.debug('kc is ' + field_mapping); 
-        for(String s : field_map.keySet()){
-            fields.add(new SelectOption(s,s)); 
-        }
+            Schema.sObjectType sobj = object_map.get(select_object);
+            Schema.DescribeSObjectResult sobj_desc = sobj.getDescribe(); 
+            isCreateable = sobj_desc.isCreateable(); 
+            isUpdateable = sobj_desc.isUpdateable(); 
+            Map <String, Schema.SObjectType> schemaMap = Schema.getGlobalDescribe();
+            Map<String,Schema.SObjectField> field_map = schemaMap.get('importtest__c').getDescribe().fields.getMap();
+            col_headers = new List<String>(); 
+            temp2 = contentFile.toString(); 
+            temp2 = temp2.split('\n')[0];
+             temp = (contentFile.toString().split('\n'))[0]; 
+            col_headers = temp.split(',');  
+            field_mapping = new Map<String,String>();
+            fields = new List<SelectOption>(); 
+            field_indexes = new Map<String,Integer>(); 
+            Integer x = 0; 
+            for(String s : col_headers){
+                field_mapping.put(s,'');
+                field_indexes.put(s,x);
+                x++; 
+            }
+            system.debug('kc is ' + field_mapping); 
+            for(String s : field_map.keySet()){
+                Schema.SObjectField sobj_field = field_map.get(s);
+                if(sobj_field.getDescribe().isCreateable() || sobj_field.getDescribe().isUpdateable()){
+                    fields.add(new SelectOption(s,s)); 
+                }
+            }
         }
         else{
             ApexPages.Message error = new ApexPages.Message(ApexPages.severity.WARNING,'File Is Empty');
@@ -125,13 +136,5 @@ public class ImportFile {
             if (this.col_index > compMapping.col_index) return 1; 
             return -1; 
         }
-    }    
-
-    public class DMLObject{
-        public Boolean can_insert {get;set;}
-        public Boolean can_update {get;set;}
-
-        public DMLObject(){}
-
     }      
 }

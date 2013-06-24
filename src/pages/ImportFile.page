@@ -23,7 +23,7 @@
         <apex:commandButton action="{!saveMapping}" value="Generate Mapping" rendered="{!renderGenerateMapping}"/>
       </apex:pageBlock>
 
-      <apex:commandButton action="{!doInsert}" value="Insert" rendered="{!renderDMLButtons}"/>
-      <apex:commandButton action="{!doUpdate}" value="Update" rendered="{!renderDMLButtons}"/>       
+      <apex:commandButton action="{!doInsert}" value="Insert" rendered="{!isCreateable}"/>
+      <apex:commandButton action="{!doUpdate}" value="Update" rendered="{!isUpdateable}"/>       
    </apex:form>   
 </apex:page>
