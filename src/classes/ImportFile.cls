@@ -66,6 +66,7 @@ public class ImportFile {
             col_headers = temp.split(',');  
             field_mapping = new Map<String,String>();
             fields = new List<SelectOption>(); 
+            fields.add(new SelectOption('Id','Id'));
             field_indexes = new Map<String,Integer>(); 
             Integer x = 0; 
             for(String s : col_headers){
