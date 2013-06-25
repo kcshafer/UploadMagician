@@ -99,6 +99,9 @@ public class ImportFile {
         mappings = new List<FieldMapping>(); 
         for(String s : field_mapping.keySet()){
             mappings.add(temp_map.get(s));
+            if(s == 'Id'){
+                isCreateable = false; 
+            }
         }
         mappings.sort(); 
 
@@ -140,14 +143,36 @@ public class ImportFile {
         List<String> csv_rows = contentFile.toString().split('\n'); 
         system.debug('rows are ' + csv_rows.size()); 
         for(Integer x = 1; x < csv_rows.size(); x++){
-            SObject so = Schema.getGlobalDescribe().get(select_object).newSObject();
+            Map<String,Object> field_vals = new Map<String,Object>(); 
             Integer y = 0; 
             system.debug('kc is ' + csv_rows[x].split(','));
             for(String cell : csv_rows[x].split(',')){
                 system.debug('cell is ' + cell);
-                so.put(mappings[y].field_name,cell); 
+                field_vals.put(mappings[y].field_name,cell); 
                 y++; 
             }
+            SObject so; 
+            if(field_vals.containsKey('Id')){
+                Id this_id = Id.valueOf(String.valueOf(field_vals.get('Id'))); 
+                so = Schema.getGlobalDescribe().get(select_object).newSObject(this_id);
+            }
+            else{
+                so = Schema.getGlobalDescribe().get(select_object).newSObject(); 
+            }
+
+            y = 0; 
+            for(String cell :csv_rows[x].split(',')){
+                if(mappings[y].field_name == 'Id'){
+                    y++; 
+                    continue; 
+                }
+                else{
+                    system.debug('cell is ' + cell);
+                    so.put(mappings[y].field_name,cell); 
+                    y++;
+                }
+            }
+            system.debug('sobject is ' + so);
             dmlObjects.add(so);
         }
         return dmlObjects; 
@@ -224,5 +249,5 @@ public class ImportFile {
                 this.error_messages.add(err.getMessage());
             }
         }
-    }      
+    }
 }
