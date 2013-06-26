@@ -92,7 +92,7 @@ public class ImportFile {
             ApexPages.addMessage(error); 
         }
         renderGenerateMapping = true; 
-        return null;
+        return page.stepTwo;
     }       
 
     public PageReference saveMapping(){
@@ -105,7 +105,7 @@ public class ImportFile {
         }
         mappings.sort(); 
 
-        return null;
+        return Page.StepThree;
     }
 
     public PageReference doInsert(){
@@ -127,14 +127,14 @@ public class ImportFile {
             ApexPages.addMessage(error); 
         }
 
-        return null; 
+        return Page.StepFour; 
     }
 
    public PageReference doUpdate(){
         List<SObject> updateObjects = this.getDMLObjects(); 
         List<Database.SaveResult> errors = Database.Update(updateObjects); 
 
-        return null; 
+        return Page.StepFour; 
    }
 
    //get a list of sobject to use for insert and update ops 

@@ -23,7 +23,6 @@
         <apex:selectList value="{!select_object}" size="1">
             <apex:selectOptions value="{!objects}"></apex:selectOptions>
         </apex:selectList>
-        temp is {!temp}
         <apex:pageBlockTable value="{!col_headers}" var="ch">
             <apex:column value="{!ch}"/>
             <apex:column ><apex:selectList value="{!temp_map[ch].field_name}" size="1"><apex:selectOptions value="{!temp_map[ch].options}"></apex:selectOptions></apex:selectList></apex:column>

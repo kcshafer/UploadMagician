@@ -1,0 +1,26 @@
+<apex:page controller="ImportFile">
+<apex:form >
+    <apex:actionFunction action="{!doInsert}" name="doInsert"/>
+    <apex:actionFunction action="{!doUpdate}" name="doUpdate"/>
+    <script>
+        function dmlReady(dmlType){
+            var resp = window.confirm("Final Warning! This action will do an " + dmlType + "please confirm that you are ready"); 
+            if(resp==true && dmlType == 'Insert'){
+                doInsert(); 
+            }
+            else if(resp==true && dmlType == 'Update'){
+                doUpdate(); 
+            }
+        }
+    </script>
+<apex:pageBlock >
+   <apex:pageBlockTable value="{!mappings}" var="m">
+            <apex:column value="{!m.obj}"/>
+            <apex:column value="{!m.col_index}"/>
+            <apex:column value="{!m.field_name}"/>
+        </apex:pageBlockTable>
+        </apex:pageBlock>
+        <apex:commandButton value="Insert" rendered="{!isCreateable}" onclick="dmlReady('Insert')"/>
+      <apex:commandButton value="Update" rendered="{!isUpdateable}" onclick="dmlReady('Update')"/>     
+        </apex:form>
+</apex:page>

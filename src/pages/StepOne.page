@@ -1,0 +1,12 @@
+<apex:page controller="ImportFile">
+  <apex:form >
+    <apex:messages />
+      <apex:pageBlock >
+        <apex:inputFile value="{!contentFile}" filename="{!nameFile}" /> 
+        <apex:commandButton action="{!mapFields}" value="Map Fields" id="theButton" style="width:70px;"/>
+        <apex:selectList value="{!select_object}" size="1">
+            <apex:selectOptions value="{!objects}"></apex:selectOptions>
+        </apex:selectList>
+      </apex:pageBlock>
+  </apex:form>
+</apex:page>
